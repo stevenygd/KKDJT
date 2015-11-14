@@ -27,6 +27,15 @@
 %       plan for the first n period;
 %       if n > [numPeriod] then ignore all the next
 %
+%   Output:
+%       simulatedPeriods            how many time period is simualted
+%       cmove                       the cost to move at each time period
+%       cecon                       the opp cost at each time period
+%       cdeath                      the expected calsulty at each period
+%                                   for each node           
+%       popInfo                     
+%
+%
 
 %
 % Load Data
@@ -57,16 +66,16 @@ ECap        = E(1:sizeV,:);
 ECostMove   = E((sizeV+1):(sizeV*2),:);
 
 % step for each day
-simulatedPeriods =max(max(plannedPeriods, numPeriod), landfallTime + 2);
+simulatedPeriods = max(max(plannedPeriods, numPeriod), landfallTime + 2)
 cmove   = zeros(1, simulatedPeriods);  % [0xn] mat. contains costs
                                        % to move at each simulated period
                                                     
 cecon   = zeros(1, simulatedPeriods);  % [0xn] mat. contains opportunity cost
                                        % at each simulated period
                                        
-% [0xn] mat. contains the casulty at each period 
+% [n x |V|] mat. contains the casulty at each period 
 % should expect this to be zero before the landfall
-cdeath  = zeros(1, simulatedPeriods);  
+cdeath  = zeros(simulatedPeriods, sizeV);  
 
 % [1+n, V] mat contains population remaining at each county at each time period
 popInfo = zeros(simulatedPeriods + 1, sizeV);
@@ -93,16 +102,19 @@ for t = 1 : simulatedPeriods
     % 
     vOut = sum(p,2)';    % out population for each vertices  (sum alone rows)
     vIn  = sum(p);     % in population for each verices    (sum alone cols)
-    popInfo(t+1,:) = popInfo(t) - vOut + vIn;
+    popInfo(t+1,:) = max(0, popInfo(t) - vOut + vIn);
     
     % death cost
     if t >= landfallTime
        % TODO: floating point error! consider!
 
        deathForEachNode = sign(max(0, prob_flood(V) - floodCap)) .* death_rate(V, t - landfallTime);
-       cdeath = sum(deathForEachNode);
+       cdeath(t,:) = deathForEachNode';
+       popInfo(t+1,:) = max(0, popInfo(t+1,:) - deathForEachNode');
     end;
 end
+
+
 cmove
 cecon
 popInfo
