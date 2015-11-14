@@ -1,0 +1,11 @@
+%
+% load the data
+%   The simulator data includes:
+%   1. nodes information            : |V| x 4   matrix
+%       first field is the identity, 
+%       
+%   2. edge capacity                : |V| x |V| matrix
+%   3. wind information
+%
+
+
