@@ -7,7 +7,7 @@ function [ d_rate ] = death_rate( nodes, time )
 %   d_rate  [sizeV x 1]     the rate of calsulty
 
 % TODO: dummy!
-d_rate = ones(size(nodes,1),1) / (time + 1);
+d_rate = ones(size(nodes,1),1) / (2*time + 1);
 
 end
 

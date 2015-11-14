@@ -28,25 +28,30 @@
 %       if n > [numPeriod] then ignore all the next
 %
 %   Output:
-%       simulatedPeriods            how many time period is simualted
-%       cmove                       the cost to move at each time period
-%       cecon                       the opp cost at each time period
-%       cdeath                      the expected calsulty at each period
+%       simulatedPeriods = p        how many time period is simualted
+%       cmove            1xp        the cost to move at each time period
+%       cecon            1xp        the opp cost at each time period
+%       cdeath           px|V|      the expected calsulty at each period
 %                                   for each node           
-%       popInfo                     
+%       popInfo          (p+1)x|V|  the remaining population for each time
+%                                   stamp and each node            
 %
 %
 
 %
 % Load Data
 %
+
 pwd
-numPeriod = 5;
-M  = importdata(strcat(pwd, '/input/meta.dat'));
-V  = importdata(strcat(pwd, '/input/nodes.dat'));
-E  = importdata(strcat(pwd, '/input/edge.dat'));
-W  = importdata(strcat(pwd, '/input/wind.dat'));
-P  = importdata(strcat(pwd, '/input/plan.dat'));
+
+path = input('Input path:','s');
+numPeriod = input('Number of simulation period:');
+
+M  = importdata(strcat(pwd, '/', path, '/meta.dat'));
+V  = importdata(strcat(pwd, '/', path, '/nodes.dat'));
+E  = importdata(strcat(pwd, '/', path, '/edge.dat'));
+W  = importdata(strcat(pwd, '/', path, '/wind.dat'));
+P  = importdata(strcat(pwd, '/', path, '/plan.dat'));
 
 %
 % Simulate
@@ -96,30 +101,33 @@ for t = 1 : simulatedPeriods
     % calculate the economic opportunity cost at each period
     totalMove  = sum(sum(p));
     op_cost    = @(diff) min(0,diff) ^ 2;
-    cecon(1,t) = op_cost(t - landfallTime) * totalMove * gpaPerCapita;
+    cecon(1,t) = op_cost(landfallTime - t) * totalMove * gpaPerCapita;
     
     % update the population
-    % 
     vOut = sum(p,2)';    % out population for each vertices  (sum alone rows)
-    vIn  = sum(p);     % in population for each verices    (sum alone cols)
+    vIn  = sum(p);       % in population for each verices    (sum alone cols)
     popInfo(t+1,:) = max(0, popInfo(t) - vOut + vIn);
     
     % death cost
     if t >= landfallTime
        % TODO: floating point error! consider!
-
        deathForEachNode = sign(max(0, prob_flood(V) - floodCap)) .* death_rate(V, t - landfallTime);
-       cdeath(t,:) = deathForEachNode';
-       popInfo(t+1,:) = max(0, popInfo(t+1,:) - deathForEachNode');
-    end;
-end
+       cdeath(t,:) = deathForEachNode';       
 
+       % disp('Death incurred by the wind:');disp(t);disp(deathForEachNode);
+       
+       popInfo(t+1,:) = max(0, popInfo(t,:) - deathForEachNode');
+    end;
+    
+    % disp(popInfo(t+1,:))
+end;
 
 cmove
 cecon
 popInfo
 cdeath
 
-
+save(strcat(pwd, '/', path, '/out_costs.dat'), 'cmove',   'cecon', 'cdeath', '-ascii');
+save(strcat(pwd, '/', path, '/out_popInfo.dat'), 'popInfo', '-ascii'); 
 
 
