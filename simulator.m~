@@ -1,26 +1,89 @@
 %
 % load the data
 %   The simulator data includes:
-%   1. V = nodes information        : |V| x 4   matrix
+%   0.  M = meta data                : 1 x 
+%       M.(1,1) GPA per capita
+%   1.  V = nodes information        : |V|  x 4   matrix
 %       V_{i,1}             is identity, 
 %       (V_{i,2},V_{i,3})   is the geographic point 
 %       V_{i,4}             is the population
 %
-%   2. EC = edge capacity           : |V| x |V| matrix
-%       EC_{i,j}            capacity of the edge from V_i to V_j
+%   2.  E = edge parameters          : |V|  x |V| matrix       
+%       Firxt   |V|x|V| matrix       : capactiy of of each edge
+%                                       (0 if not connected)
+%       Second  |V|x|V| matrix       : cost of moving alone each edge
+%                                       (Infinity if not connected)
+%       Third   |V|x|V| matrix       : coeffiecient  
 %
-%   3. W  = Wind information        : 1   x 3   matrix
-%       (W_{1}, W_{2})      is the geographic point for landfall
-%       W_{3}               category
+%   3.  W  = Wind information        : 1    x 4   matrix
+%       W_{1}               is the time period of the landfall
+%       (W_{2}, W_{3})      is the geographic point for landfall
+%       W_{4}               category
 %
-%   4. P  = Plan information        : |V| x |V
+%   4.  P  = Plan information        : n|V| x |V| matrix
+%       each |V|x|V| matrix denotes a plan day for a period
+%       plan for the first n period;
+%       if n > [numPeriod] then ignore all the next
 %
 
+%
+% Load Data
+%
 pwd
+numPeriod = 5;
+M  = importdata(strcat(pwd, '/input/meta.dat'));
 V  = importdata(strcat(pwd, '/input/nodes.dat'));
-EC = importdata(strcat(pwd, '/input/edgeCapacity.dat'));
+E  = importdata(strcat(pwd, '/input/edge.dat'));
 W  = importdata(strcat(pwd, '/input/wind.dat'));
+P  = importdata(strcat(pwd, '/input/plan.dat'));
 
+%
+% Simulate
+%
+sizeV           = size(V, 1);
+plannedPeriods  = size(P,1) / sizeV;
+landfallTime    = W(1,1);
+gpaPerCapita    = M(1,1);
+initPopulation  = V(:,4);
+
+% extract edge parameters
+ECap        = E(1:sizeV,:);
+ECostMove   = E((sizeV+1):(sizeV*2),:);
+
+% step for each day
+simulatedPeriods = min(plannedPeriods, numPeriod);
+cmove   = zeros(1, simulatedPeriods);  % [0xn] mat. contains costs
+                                       % to move at each simulated period
+                                                    
+cecon   = zeros(1, simulatedPeriods);  % [0xn] mat. contains opportunity cost
+                                       % at each simulated period
+                                                    
+cdeath  = zeros(1, simulatedPeriods);  % [0xn] mat. contains opportunity cost
+                                       % at each simulated period
+
+% [1+
+popInfo = zeros(simulatedPeriods + 1, sizeV);
+popInfo(1) = initPopulation;
+                                                    
+for t = 1 : simulatedPeriods
+    p = P((1+sizeV*(t-1)):sizeV*t,:);
+    
+    % calculate the cost to move at each period
+    pExceed = arrayfun(@max,zeros(sizeV),p - ECap);
+    costExceedMat = costMatrixOfExceed(pExceed);
+    cmove(1,t) = sum(sum(p .* ECostMove + costExceedMat));
+    
+    % calculate the economic opportunity cost at each period
+    totalMove  = sum(sum(p));
+    op_cost    = @(t_diff) min(0,t_dff) ^ 2;
+    cecon(1,t) = op_cost(t - landfallTime) * totalMove * gpaPerCapita;
+    
+    % update the population
+    remainingInfo = 
+    
+    % death cost
+    
+end
 
 
 
