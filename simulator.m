@@ -11,16 +11,17 @@
 %       V_{i,4}             is the population
 %
 %   2.  E = edge parameters          : |V|  x |V| matrix       
-%       Firxt   |V|x|V| matrix       : capactiy of of each edge
+%       First   |V|x|V| matrix       : adjencency matrix
+%       Second  |V|x|V| matrix       : capactiy of of each edge
 %                                       (0 if not connected)
-%       Second  |V|x|V| matrix       : cost of moving alone each edge
+%       Third  |V|x|V| matrix       : cost of moving alone each edge
 %                                       (Infinity if not connected)
-%       Third   |V|x|V| matrix       : coeffiecient  
 %
 %   3.  W  = Wind information        : 1    x 4   matrix
-%       W_{1}               is the time period of the landfall
-%       (W_{2}, W_{3})      is the geographic point for landfall
-%       W_{4}               category
+%       W(1)               is the time period of the landfall
+%       (W(2), W(3))       is the geographic point for landfall
+%       W(4)               category
+%       W(5)               central pressure
 %
 %   4.  P  = Plan information        : n|V| x |V| matrix
 %       each |V|x|V| matrix denotes a plan day for a period
@@ -41,14 +42,14 @@
 %
 % Load Data
 %
-
+import Graph.*
 pwd
 
 path = input('Input path:','s');
 numPeriod = input('Number of simulation period:');
 
 M  = importdata(strcat(pwd, '/', path, '/meta.dat'));
-V  = importdata(strcat(pwd, '/', path, '/nodes.dat'));
+N  = importdata(strcat(pwd, '/', path, '/nodes.dat'));
 E  = importdata(strcat(pwd, '/', path, '/edge.dat'));
 W  = importdata(strcat(pwd, '/', path, '/wind.dat'));
 P  = importdata(strcat(pwd, '/', path, '/plan.dat'));
@@ -56,8 +57,10 @@ P  = importdata(strcat(pwd, '/', path, '/plan.dat'));
 %
 % Simulate
 %
+V = N.data;
+NodeTable = N.textdata;
 sizeV           = size(V, 1);
-initPopulation  = V(:,4);
+initPopulation  = V(:,3);
 
 plannedPeriods  = size(P,1) / sizeV;
 
@@ -67,11 +70,12 @@ gpaPerCapita    = M(1,1);
 floodCap        = M(1,2);
 
 % extract edge parameters
-ECap        = E(1:sizeV,:);
-ECostMove   = E((sizeV+1):(sizeV*2),:);
+ETable      = E(1:sizeV,:);
+ECap        = E((sizeV+1):(sizeV*2),:);
+ECostMove   = E((2*sizeV+1):(sizeV*3),:);
 
 % step for each day
-simulatedPeriods = max(max(plannedPeriods, numPeriod), landfallTime + 2)
+simulatedPeriods = max(max(plannedPeriods, numPeriod), landfallTime + 2);
 cmove   = zeros(1, simulatedPeriods);  % [0xn] mat. contains costs
                                        % to move at each simulated period
                                                     
@@ -88,9 +92,9 @@ popInfo(1,:) = initPopulation';
                                                     
 for t = 1 : simulatedPeriods
     if t > plannedPeriods
-        p = zeros(sizeV, sizeV);
+        p = zeros(sizeV, sizeV) .* ETable;
     else 
-        p = P((1+sizeV*(t-1)):sizeV*t,:);
+        p = P((1+sizeV*(t-1)):sizeV*t,:) .* ETable;
     end
     
     % calculate the cost to move at each period
@@ -106,28 +110,28 @@ for t = 1 : simulatedPeriods
     % update the population
     vOut = sum(p,2)';    % out population for each vertices  (sum alone rows)
     vIn  = sum(p);       % in population for each verices    (sum alone cols)
-    popInfo(t+1,:) = max(0, popInfo(t) - vOut + vIn);
+    popInfo(t+1,:) = max(0, popInfo(t,:) - vOut + vIn);
     
     % death cost
     if t >= landfallTime
        % TODO: floating point error! consider!
-       deathForEachNode = sign(max(0, prob_flood(V) - floodCap)) .* death_rate(V, t - landfallTime);
-       cdeath(t,:) = deathForEachNode';       
+       deathForEachNode = sign(max(0, prob_flood(V, W) - floodCap)) .* death_rate(V, t - landfallTime);
+       cdeath(t,:) = deathForEachNode' .* popInfo(t,:);       
 
        % disp('Death incurred by the wind:');disp(t);disp(deathForEachNode);
        
-       popInfo(t+1,:) = max(0, popInfo(t,:) - deathForEachNode');
+       popInfo(t+1,:) = max(0, popInfo(t,:) .* (1- deathForEachNode'));
     end;
     
     % disp(popInfo(t+1,:))
 end;
 
-cmove
-cecon
-popInfo
-cdeath
+% cmove
+% cecon
+% popInfo
+% cdeath
 
-save(strcat(pwd, '/', path, '/out_costs.dat'), 'cmove',   'cecon', 'cdeath', '-ascii');
-save(strcat(pwd, '/', path, '/out_popInfo.dat'), 'popInfo', '-ascii'); 
+save(strcat(pwd, '/', path, '/out_costs.dat'), 'cmove',   'cecon', 'cdeath', '-ascii','-tabs');
+save(strcat(pwd, '/', path, '/out_popInfo.dat'), 'popInfo', '-ascii','-tabs'); 
 
 

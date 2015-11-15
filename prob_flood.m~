@@ -24,8 +24,9 @@ if deltaP > 48
     mu_vf       = 6.6;
     sigma_vf    = 2.8;
 
-    TL = betapdf(locations, 10.229, 11.747);
 
+    mu_tl       = 
+    sigma_tl    = 
 elseif deltaP > 31
     % if normal strom
     mu_rp       = 79.58 * deltaP^(-0.33);
@@ -33,10 +34,11 @@ elseif deltaP > 31
 
     mu_vf       = 5.5;
     sigma_vf    = 2.5;
-    
-    TL = normpdf(locations,-9.9,58.7);
-    TL = max(0, TL + 90) - 90;      % truncate everything that is < -90
-    TL = min(0, TL - 90) + 90;      % truncate everything that is > 90
+
+    TL = normpdf(locations,mu_tl,sigma_tl);
+
+    mu_tl       = windInfo(1,9);
+    sigma_tl    = windInfo(1,10);
 else
     % no storm at all
     pFlood(1:size(locations,1)) = 0;

@@ -1,4 +1,4 @@
-function [ output_args ] = untitled3( input_args )
+function [ output_args ] = hurricine( input_args )
 %UNTITLED3 Summary of this function goes here
 %   Detailed explanation goes here
 
