@@ -57,8 +57,8 @@ P  = importdata(strcat(pwd, '/', path, '/plan.dat'));
 %
 % Simulate
 %
-V = N.data;
-NodeTable = N.textdata;
+V = N(:,2:4);
+% NodeTable = N.textdata;
 sizeV           = size(V, 1);
 initPopulation  = V(:,3);
 
@@ -104,7 +104,7 @@ for t = 1 : simulatedPeriods
     
     % calculate the economic opportunity cost at each period
     totalMove  = sum(sum(p));
-    op_cost    = @(diff) min(0,diff) ^ 2;
+    op_cost    = @(diff) max(0,diff) ^ 2;
     cecon(1,t) = op_cost(landfallTime - t) * totalMove * gpaPerCapita;
     
     % update the population
@@ -127,7 +127,7 @@ for t = 1 : simulatedPeriods
 end;
 
 % cmove
-% cecon
+cecon
 % popInfo
 % cdeath
 
